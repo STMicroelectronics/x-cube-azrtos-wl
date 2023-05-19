@@ -60,8 +60,10 @@
     .global     __tx_PendSVHandler                  @ PendSV
     .global     __tx_SysTickHandler                 @ SysTick
     .global     __tx_IntHandler                     @ Int 0
-	.global     Image$$RW_IRAM1$$ZI$$Limit
     .global     __Vectors
+#ifdef USE_DYNAMIC_MEMORY_ALLOCATION
+    .global     Image$$RW_IRAM1$$ZI$$Limit
+#endif
 @
 @
 SYSTEM_CLOCK      =   48000000
@@ -70,6 +72,7 @@ SYSTICK_CYCLES    =   ((SYSTEM_CLOCK / 100) -1)
     .text 32
     .align 4
     .syntax unified
+
 @/**************************************************************************/
 @/*                                                                        */
 @/*  FUNCTION                                               RELEASE        */
@@ -205,10 +208,16 @@ __tx_IntHandler:
 @ VOID InterruptHandler (VOID)
 @ {
     PUSH    {r0, lr}
+#ifdef TX_EXECUTION_PROFILE_ENABLE
+    BL      _tx_execution_isr_enter             @ Call the ISR enter function
+#endif
 
 @    /* Do interrupt handler work here */
 @    /* BL <your C Function>.... */
 
+#ifdef TX_EXECUTION_PROFILE_ENABLE
+    BL      _tx_execution_isr_exit              @ Call the ISR exit function
+#endif
     POP     {r0, lr}
     BX      LR
 @ }
@@ -224,9 +233,13 @@ SysTick_Handler:
 @ {
 @
     PUSH    {r0, lr}
-
+#ifdef TX_EXECUTION_PROFILE_ENABLE
+    BL      _tx_execution_isr_enter             @ Call the ISR enter function
+#endif
     BL      _tx_timer_interrupt
-
+#ifdef TX_EXECUTION_PROFILE_ENABLE
+    BL      _tx_execution_isr_exit              @ Call the ISR exit function
+#endif
     POP     {r0, lr}
     BX      LR
 @ }
@@ -242,7 +255,6 @@ __tx_NMIHandler:
 __tx_DBGHandler:
     B       __tx_DBGHandler
 .end
-
 #endif
 
 #ifdef __IAR_SYSTEMS_ASM__
@@ -405,11 +417,11 @@ SysTick_Handler:
 ; {
 ;
     PUSH    {r0, lr}
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_enter             ; Call the ISR enter function
 #endif
     BL      _tx_timer_interrupt
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_exit              ; Call the ISR exit function
 #endif
     POP     {r0, lr}
@@ -605,14 +617,14 @@ __tx_IntHandler:
 @ VOID InterruptHandler (VOID)
 @ {
     PUSH    {r0, lr}
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_enter             @ Call the ISR enter function
 #endif
 
 @    /* Do interrupt handler work here */
 @    /* BL <your C Function>.... */
 
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_exit              @ Call the ISR exit function
 #endif
     POP     {r0, lr}
@@ -630,11 +642,11 @@ SysTick_Handler:
 @ {
 @
     PUSH    {r0, lr}
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_enter             @ Call the ISR enter function
 #endif
     BL      _tx_timer_interrupt
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#ifdef TX_EXECUTION_PROFILE_ENABLE
     BL      _tx_execution_isr_exit              @ Call the ISR exit function
 #endif
     POP     {r0, lr}

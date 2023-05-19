@@ -77,7 +77,7 @@ None
 
 ### <b>Keywords</b>
 
-RTOS, ThreadX, Thread, Message Queue, Module Manager, Module, MPU
+RTOS, ThreadX, Threading, Message Queue, Module Manager, Module, MPU
 
 
 ### <b>Hardware and Software environment</b>

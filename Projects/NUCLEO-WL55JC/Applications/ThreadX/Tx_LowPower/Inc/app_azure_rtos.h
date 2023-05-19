@@ -1,10 +1,9 @@
-
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    app_azure_rtos.h
   * @author  MCD Application Team
-  * @brief   azure_rtos application header file
+  * @brief   app_azure_rtos application header file
   ******************************************************************************
   * @attention
   *
@@ -30,7 +29,6 @@ extern "C" {
 #include "app_azure_rtos_config.h"
 
 #include "app_threadx.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

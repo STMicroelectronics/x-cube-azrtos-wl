@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 #include "app_threadx.h"
-#include "main.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -59,12 +59,6 @@ PROCESSING_FINISHED       = 44
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN TX_Pool_Buffer */
-/* USER CODE END TX_Pool_Buffer */
-#if defined ( __ICCARM__ )
-#pragma data_alignment=4
-#endif
-__ALIGN_BEGIN static UCHAR tx_byte_pool_buffer[TX_APP_MEM_POOL_SIZE] __ALIGN_END;
 
 /* USER CODE BEGIN PV */
 /* Define the ThreadX object control blocks */
@@ -81,7 +75,7 @@ UCHAR  object_memory[OBJECT_MEM_SIZE];
 /* Define the count of memory faults.  */
 ULONG                   memory_faults = 0;
 
-static UCHAR tx_byte_pool_buffer[TX_APP_MEM_POOL_SIZE] __attribute__((aligned (4)));
+static UCHAR tx_byte_pool_buffer[TX_APP_MEM_POOL_SIZE];
 static TX_BYTE_POOL ModuleManagerBytePool;
 /* USER CODE END PV */
 
@@ -288,7 +282,7 @@ VOID module_manager_entry(ULONG thread_input)
 
   /* Toggle green LED to indicated success of operations */
   while(1) {
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9);
+    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
     tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
   }
 }

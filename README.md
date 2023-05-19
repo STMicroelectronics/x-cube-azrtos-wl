@@ -24,9 +24,9 @@ Azure RTOS is a professional grade, highly reliable and market proven Middleware
 
 One of the following toolchains:
 
-- IAR Embedded Workbench for ARM (EWARM) toolchain 8.50.6 + ST-LINKV3.
-- [STM32CubeIDE V1.7.0](https://www.st.com/en/development-tools/stm32cubeide.html)  + ST-LINKV3
-- RealView Microcontroller Development Kit (MDK-ARM) toolchain V5.32 + ST-LINKV3
+- IAR Embedded Workbench for ARM (EWARM) toolchain 9.20.1 + ST-LINKV3.
+- [STM32CubeIDE V1.12.0](https://www.st.com/en/development-tools/stm32cubeide.html)  + ST-LINKV3
+- RealView Microcontroller Development Kit (MDK-ARM) toolchain V5.37 + ST-LINKV3
 
 ## Supported Devices and Boards by applications
 - [NUCLEO-WL55JC](https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html) *(MB1389-HIGHBAND-E01)*
@@ -64,6 +64,8 @@ Details about the content of this release are available in the release note [her
 | Middleware   |  Applications                    |       Short Description      |
 |--------------|----------------------------------|------------------------------|
 |ThreadX       | Tx_Thread_Creation               | It demonstrates how to create and destroy multiple threads using Azure RTOS ThreadX APIs. In addition, it shows how to use preemption threshold between threads and change priorities on-fly. [readme](./Projects/NUCLEO-WL55JC/Applications/ThreadX/Tx_Thread_Creation/README.md) |
+|ThreadX       | Tx_Thread_Sync                   | It demonstrates how to synchronize between threads using binary semaphores or mutexes. [readme](./Projects/NUCLEO-WL55JC/Applications/ThreadX/Tx_Thread_Sync/README.md) |
+|ThreadX       | Tx_Thread_MsgQueue               | It demonstrates how to exchange message between threads using Message Queue API and how to handle message from different queues using event queue chaining feature. [readme](./Projects/NUCLEO-WL55JC/Applications/ThreadX/Tx_Thread_MsgQueue/README.md) |
 |ThreadX       | Tx_LowPower                      | It demonstrates how to configure the LowPower feature of Azure RTOS ThreadX stack. In addition, it shows how to use ThreadX MACRO related to the LowPower feature. [readme](./Projects/NUCLEO-WL55JC/Applications/ThreadX/Tx_LowPower/README.md) |
 |ThreadX       | Tx_MPU                           | It demonstrates how to load, start and unload modules. In addition, it shows how ThreadX memory protection on modules using the Memory Protection Unit (MPU). [readme](./Projects/NUCLEO-WL55JC/Applications/ThreadX/Tx_MPU/README.md) |
 |FileX         | Fx_SRAM_File_Edit_Standalone     | It demonstrates how to create a Fat File system on the internal SRAM memory using FileX running in standalone mode without ThreadX. [readme](./Projects/NUCLEO-WL55JC/Applications/FileX/Fx_SRAM_File_Edit_Standalone/README.md) |

@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -53,12 +53,17 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void Error_Handler_User(void);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LED1_Pin GPIO_PIN_9
+#define LED1_GPIO_Port GPIOB
+#define LED2_Pin GPIO_PIN_11
+#define LED2_GPIO_Port GPIOB
+
 /* USER CODE BEGIN Private defines */
-#define USER_BUTTON_Pin GPIO_PIN_0
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

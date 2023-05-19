@@ -1,3 +1,4 @@
+
 ## <b>Fx_SRAM_File_Edit_Standalone application description</b>
 
 This application provides an example of FileX stack usage on STM32WL55JC-Nucleo board, running in standalone mode (without ThreadX). It demonstrates how to create a Fat File System on the internal SRAM memory using FileX.
@@ -15,12 +16,12 @@ As stated earlier, the present application runs in standalone mode without Threa
 
 #### <b>Expected success behavior</b>
 
-  - Successful operation is marked by a toggeling GREEN LED light.
+  - Successful operation is marked by a toggling GREEN LED light.
   - Information regarding executing operation on the SRAM-Disk is printed to the serial port.
 
 #### <b>Error behaviors</b>
 
-On failure, the RED LED starts toggeling while the GREEN LED is switched OFF.
+On failure, the RED LED starts toggling while the GREEN LED is switched OFF.
 
 #### <b>Assumptions if any</b>
 None

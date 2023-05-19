@@ -279,6 +279,21 @@ UINT nx_azure_iot_hub_client_component_add(NX_AZURE_IOT_HUB_CLIENT *hub_client_p
                                            const UCHAR *component_name_ptr,
                                            USHORT component_name_length);
 
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+/**
+ * @brief Enable using MQTT over WebSocket to connect to IoTHub.
+ *
+ * @param[in] hub_client_ptr A pointer to a #NX_AZURE_IOT_HUB_CLIENT.
+ * @return A `UINT` with the result of the API.
+ *   @retval #NX_AZURE_IOT_SUCCESS Successful if MQTT over WebSocket is enabled.
+ *   @retval #NX_AZURE_IOT_INVALID_PARAMETER Fail to enable C2D message receiving due to invalid parameter.
+ *   @retval NXD_MQTT_NOT_CONNECTED Fail to enable C2D message receiving due to MQTT not connected.
+ *   @retval NXD_MQTT_PACKET_POOL_FAILURE Fail to enable C2D message receiving due to no available packet in pool.
+ *   @retval NXD_MQTT_COMMUNICATION_FAILURE Fail to enable C2D message receiving due to TCP/TLS error.
+ */
+UINT nx_azure_iot_hub_client_websocket_enable(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr);
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
+
 /**
  * @brief Connect to IoT Hub.
  *
@@ -865,6 +880,9 @@ UINT nx_azure_iot_hub_client_reported_properties_create(NX_AZURE_IOT_HUB_CLIENT 
 
 /**
  * @brief Sends reported properties message to IoTHub.
+ * @note The return status of the API indicates if the reported properties is sent out successfully or not,
+ * the response status is used to track if the reported properties is accepted or not by IoT Hub, and the
+ * reponse status is available only when the return status is NX_AZURE_IOT_SUCCESS.
  *
  * @param[in] hub_client_ptr A pointer to a #NX_AZURE_IOT_HUB_CLIENT.
  * @param[in] packet_ptr A pointer to a #NX_PACKET
@@ -878,7 +896,6 @@ UINT nx_azure_iot_hub_client_reported_properties_create(NX_AZURE_IOT_HUB_CLIENT 
  *   @retval #NX_AZURE_IOT_NOT_ENABLED Fail to send reported properties due to property is not enabled.
  *   @retval #NX_AZURE_IOT_SDK_CORE_ERROR Fail to send reported properties due to SDK core error.
  *   @retval #NX_AZURE_IOT_INSUFFICIENT_BUFFER_SPACE Fail to send reported properties due to buffer size is too small.
- *   @retval #NX_AZURE_IOT_NO_PACKET Fail to send reported properties due to no packet available.
  *   @retval NX_NO_PACKET Fail to send reported properties due to no packet available.
  *   @retval #NX_AZURE_IOT_DISCONNECTED Fail to send reported properties due to disconnect.
  */

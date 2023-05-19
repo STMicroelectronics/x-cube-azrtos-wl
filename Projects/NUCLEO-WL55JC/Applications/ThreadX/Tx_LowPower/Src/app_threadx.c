@@ -42,19 +42,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TX_THREAD tx_app_thread;
+TX_SEMAPHORE tx_app_semaphore;
 /* USER CODE BEGIN PV */
-TX_THREAD                       MainThread;
-TX_SEMAPHORE                    Semaphore;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-VOID MainThread_Entry(ULONG thread_input);
 extern void SystemClock_Config(void);
-static void SystemClock_Restore(void);
-void Enter_LowPower_Mode(void);
-void Exit_LowPower_Mode(void);
-void App_Delay(ULONG Delay);
+static VOID App_Delay(ULONG Delay);
 /* USER CODE END PFP */
 
 /**
@@ -66,65 +62,65 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
-
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
 
   /* USER CODE END App_ThreadX_MEM_POOL */
-
-  /* USER CODE BEGIN App_ThreadX_Init */
-
   CHAR *pointer;
 
-  /* Allocate the stack for MainThread.  */
-  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, APP_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
+  /* Allocate the stack for Main Thread  */
+  if (tx_byte_allocate(byte_pool, (VOID**) &pointer,
+                       TX_APP_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
-    ret = TX_POOL_ERROR;
+    return TX_POOL_ERROR;
+  }
+  /* Create Main Thread.  */
+  if (tx_thread_create(&tx_app_thread, "Main Thread", MainThread_Entry, 0, pointer,
+                       TX_APP_STACK_SIZE, TX_APP_THREAD_PRIO, TX_APP_THREAD_PREEMPTION_THRESHOLD,
+                       TX_APP_THREAD_TIME_SLICE, TX_APP_THREAD_AUTO_START) != TX_SUCCESS)
+  {
+    return TX_THREAD_ERROR;
   }
 
-  /* Create MainThread.  */
-  if (tx_thread_create(&MainThread, "Main Thread", MainThread_Entry, 0, pointer, APP_STACK_SIZE, MAIN_THREAD_PRIO,
-                       MAIN_THREAD_PREEMPTION_THRESHOLD, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
+  /* Create Semaphore.  */
+  if (tx_semaphore_create(&tx_app_semaphore, "Semaphore", 0) != TX_SUCCESS)
   {
-    ret = TX_THREAD_ERROR;
+    return TX_SEMAPHORE_ERROR;
   }
 
-  /* Create a counting semaphore */
-  if (tx_semaphore_create(&Semaphore, "idler semaphore",0)  != TX_SUCCESS)
-  {
-    ret = TX_THREAD_ERROR;
-  }
+  /* USER CODE BEGIN App_ThreadX_Init */
 
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
 }
-
 /**
-  * @brief  App_ThreadX_LowPower_Enter
-  * @param  None
+  * @brief  Function implementing the MainThread_Entry thread.
+  * @param  thread_input: Hardcoded to 0.
   * @retval None
   */
-void App_ThreadX_LowPower_Enter(void)
+void MainThread_Entry(ULONG thread_input)
 {
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
-  Enter_LowPower_Mode();
-  /* USER CODE END  App_ThreadX_LowPower_Enter */
+  /* USER CODE BEGIN MainThread_Entry */
+  (void) thread_input;
+  UINT i = 0;
+  /* Infinite loop */
+  while (1)
+  {
+    if (tx_semaphore_get(&tx_app_semaphore, TX_WAIT_FOREVER) == TX_SUCCESS)
+    {
+      for (i=0; i<10; i++)
+      {
+      /* Toggle LED to indicate status*/
+      HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+      App_Delay(50);
+      }
+    }
+  }
+  /* USER CODE END MainThread_Entry */
 }
 
-/**
-  * @brief  App_ThreadX_LowPower_Exit
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Exit(void)
-{
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
-  Exit_LowPower_Mode();
-  /* USER CODE END  App_ThreadX_LowPower_Exit */
-}
-
-/**
-  * @brief  MX_ThreadX_Init
+  /**
+  * @brief  Function that implements the kernel's initialization.
   * @param  None
   * @retval None
   */
@@ -141,67 +137,15 @@ void MX_ThreadX_Init(void)
   /* USER CODE END  Kernel_Start_Error */
 }
 
-/* USER CODE BEGIN 1 */
-
 /**
-  * @brief  Function implementing the MainThread thread.
-  * @param  thread_input: Not used
-  * @retval None
-  */
-void MainThread_Entry(ULONG thread_input)
-{
-  (void) thread_input;
-  UINT count;
-
-  /* Infinite loop */
-  while (1)
-  {
-    if(tx_semaphore_get(&Semaphore, TX_WAIT_FOREVER) == TX_SUCCESS )
-    {
-      for(count=0; count<10; count++)
-      {
-        /* Toggle LED to indicate status*/
-        HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_9);
-        App_Delay(50);
-      }
-    }
-  }
-}
-
-/**
-  * @brief  EXTI line detection callbacks.
-  * @param  GPIO_Pin Specifies the pins connected EXTI line
-  * @retval None
-  */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  ULONG currentValue = 0;
-  if (GPIO_Pin == GPIO_PIN_0)
-  {
-    tx_semaphore_info_get(&Semaphore, NULL, &currentValue, NULL, NULL, NULL);
-    if (currentValue == 0)
-    {
-      /* Put the semaphore */
-      tx_semaphore_put(&Semaphore);
-    }
-  }
-}
-
-/**
-  * @brief  This function should be called to enter the low power mode.
+  * @brief  App_ThreadX_LowPower_Enter
   * @param  None
   * @retval None
   */
-void Enter_LowPower_Mode(void)
+void App_ThreadX_LowPower_Enter(void)
 {
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
   GPIO_InitTypeDef GPIO_InitStructure;
-
-  /* Turn OFF LED's */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-
-  /*Enable GPIOsclock */
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /* Set all GPIO in analog state to reduce power consumption,                */
   /*   except GPIOA to keep user button interrupt enabled                     */
@@ -214,30 +158,30 @@ void Enter_LowPower_Mode(void)
   GPIO_InitStructure.Pull = GPIO_NOPULL;
 
   HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
 
   /* Disable GPIOs clock */
   __HAL_RCC_GPIOB_CLK_DISABLE();
-  __HAL_RCC_GPIOC_CLK_DISABLE();
 
-  /* Enter Stop Mode */
+  /* Enter to the stop mode */
   HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-
+  /* USER CODE END  App_ThreadX_LowPower_Enter */
 }
 
 /**
-  * @brief  This function should be called to exit the low power mode.
+  * @brief  App_ThreadX_LowPower_Exit
   * @param  None
   * @retval None
   */
-void Exit_LowPower_Mode(void)
+void App_ThreadX_LowPower_Exit(void)
 {
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
   /* GPIOA Port Clock Enable */
   GPIO_InitTypeDef  GPIO_InitStruct= {0};
 
-  /* Re-configure the system clock to 120 MHz based on MSI, enable and
-  select PLL as system clock source (PLL is disabled in STOP mode) */
-  SystemClock_Restore();
+  /* Reconfigure the system clock*/
+  HAL_RCC_DeInit();
+  SystemClock_Config();
+
   /* Enable GPIOB clock */
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
@@ -247,49 +191,30 @@ void Exit_LowPower_Mode(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
+  /* USER CODE END  App_ThreadX_LowPower_Exit */
 }
 
+/* USER CODE BEGIN 1 */
 /**
-  * @brief  Configures system clock after wake-up from STOP: enable MSI, PLL
-  *         and select PLL as system clock source.
-  * @param  None
+  * @brief EXTI line detection callbacks
+  * @param GPIO_Pin: Specifies the pins connected EXTI line
   * @retval None
   */
-static void SystemClock_Restore(void)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  uint32_t pFLatency = 0;
-
-  /* Enable MSI oscillator */
-  LL_RCC_MSI_Enable();
-  while(LL_RCC_MSI_IsReady() != 1)
+  ULONG currentValue = 0;
+  if (GPIO_Pin == GPIO_PIN_0)
   {
-  };
-  /* Get the Oscillators configuration according to the internal RCC registers */
-  HAL_RCC_GetOscConfig(&RCC_OscInitStruct);
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.PLL.PLLState = RCC_MSI_ON;
-  while (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-  };
-
-  /* Get the Clocks configuration according to the internal RCC registers */
-  HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, &pFLatency);
-
-  /* Select MSI as system clock source and configure the HCLK, PCLK1 and PCLK2
-     clocks dividers */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK3|RCC_CLOCKTYPE_HCLK
-                              |RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
-                              |RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource  = RCC_SYSCLKSOURCE_MSI;
-  while (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, pFLatency) != HAL_OK)
-  {
-  };
+    /* Add additional checks to avoid multiple semaphore puts by successively
+    clicking on the user button */
+    tx_semaphore_info_get(&tx_app_semaphore, NULL, &currentValue, NULL, NULL, NULL);
+    if (currentValue == 0)
+    {
+      /* Put the semaphore to release the MainThread */
+      tx_semaphore_put(&tx_app_semaphore);
+    }
+  }
 }
-
 /**
   * @brief  Application Delay function.
   * @param  Delay : number of ticks to wait
@@ -300,5 +225,4 @@ void App_Delay(ULONG Delay)
   ULONG initial_time = tx_time_get();
   while ((tx_time_get() - initial_time) < Delay);
 }
-
 /* USER CODE END 1 */

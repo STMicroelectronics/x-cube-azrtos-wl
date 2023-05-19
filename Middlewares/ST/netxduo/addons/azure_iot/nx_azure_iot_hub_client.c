@@ -34,10 +34,10 @@
 #define NX_AZURE_IOT_HUB_CLIENT_USER_AGENT_DEVICE_TYPE "U"
 #endif /* NX_AZURE_IOT_HUB_CLIENT_USER_AGENT_DEVICE_TYPE */
 
-/* Useragent e.g: DeviceClientType=c%2F1.0.0%20%28nx%206.0.0%3Bazrtos%206.0.0%29 */
+/* Useragent e.g: azsdk-c%2F1.3.0%20%28azrtos%206.1.2%3B0%3B0%3BU%29 */
 #define NX_AZURE_IOT_HUB_CLIENT_STR(C)          #C
 #define NX_AZURE_IOT_HUB_CLIENT_TO_STR(x)       NX_AZURE_IOT_HUB_CLIENT_STR(x)
-#define NX_AZURE_IOT_HUB_CLIENT_USER_AGENT      "DeviceClientType=c%2F" AZ_SDK_VERSION_STRING "%20%28azrtos%20" \
+#define NX_AZURE_IOT_HUB_CLIENT_USER_AGENT      "azsdk-c%2F" AZ_SDK_VERSION_STRING "%20%28azrtos%20" \
                                                 NX_AZURE_IOT_HUB_CLIENT_TO_STR(THREADX_MAJOR_VERSION) "." \
                                                 NX_AZURE_IOT_HUB_CLIENT_TO_STR(THREADX_MINOR_VERSION) "." \
                                                 NX_AZURE_IOT_HUB_CLIENT_TO_STR(THREADX_PATCH_VERSION) "%3B"\
@@ -49,6 +49,8 @@ static UCHAR _nx_azure_iot_hub_client_user_agent[] = NX_AZURE_IOT_HUB_CLIENT_USE
 #endif /* NX_AZURE_IOT_HUB_CLIENT_USER_AGENT */
 
 #define NX_AZURE_IOT_HUB_CLIENT_COMPONENT_STRING        "$.sub"
+
+#define NX_AZURE_IOT_HUB_CLIENT_WEB_SOCKET_PATH         "/$iothub/websocket"
 
 static VOID nx_azure_iot_hub_client_received_message_cleanup(NX_AZURE_IOT_HUB_CLIENT_RECEIVE_MESSAGE *message);
 static UINT nx_azure_iot_hub_client_cloud_message_sub_unsub(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
@@ -351,6 +353,25 @@ ULONG         index;
 }
 #endif /* NX_AZURE_IOT_HUB_CLIENT_USER_AGENT_UPDATE */
 
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+UINT nx_azure_iot_hub_client_websocket_enable(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr)
+{
+NX_AZURE_IOT_RESOURCE *resource_ptr;
+
+    if (hub_client_ptr == NX_NULL)
+    {
+        LogError(LogLiteralArgs("IoTHub WebSocket enable fail: INVALID POINTER"));
+        return(NX_AZURE_IOT_INVALID_PARAMETER);
+    }
+
+    /* Set resource pointer.  */
+    resource_ptr = &(hub_client_ptr -> nx_azure_iot_hub_client_resource);
+
+    return(nxd_mqtt_client_websocket_set(&(resource_ptr -> resource_mqtt), (UCHAR *)resource_ptr -> resource_hostname, resource_ptr -> resource_hostname_length, 
+                                         (UCHAR *)NX_AZURE_IOT_HUB_CLIENT_WEB_SOCKET_PATH, sizeof(NX_AZURE_IOT_HUB_CLIENT_WEB_SOCKET_PATH) - 1));
+}
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
+
 UINT nx_azure_iot_hub_client_connect(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
                                      UINT clean_session, UINT wait_option)
 {
@@ -364,6 +385,7 @@ VOID            *buffer_context;
 UINT            buffer_length;
 ULONG           expiry_time_secs;
 az_result       core_result;
+UINT            server_port;
 
     /* Check for invalid input pointers.  */
     if ((hub_client_ptr == NX_NULL) || (hub_client_ptr -> nx_azure_iot_ptr == NX_NULL))
@@ -530,8 +552,21 @@ az_result       core_result;
     /* Release the mutex.  */
     tx_mutex_put(hub_client_ptr -> nx_azure_iot_ptr -> nx_azure_iot_mutex_ptr);
 
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+    if (mqtt_client_ptr -> nxd_mqtt_client_use_websocket == NX_TRUE)
+    {
+        server_port = NXD_MQTT_OVER_WEBSOCKET_TLS_PORT;
+    }
+    else
+    {
+        server_port = NXD_MQTT_TLS_PORT;
+    }
+#else
+    server_port = NXD_MQTT_TLS_PORT;
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
+
     /* Start MQTT connection.  */
-    status = nxd_mqtt_client_secure_connect(mqtt_client_ptr, &server_address, NXD_MQTT_TLS_PORT,
+    status = nxd_mqtt_client_secure_connect(mqtt_client_ptr, &server_address, server_port,
                                             nx_azure_iot_mqtt_tls_setup, NX_AZURE_IOT_MQTT_KEEP_ALIVE,
                                             clean_session, wait_option);
 
@@ -1172,7 +1207,7 @@ UCHAR packet_id[2];
     topic_len = packet_ptr -> nx_packet_length;
 
     status = nx_azure_iot_mqtt_packet_id_get(&(hub_client_ptr -> nx_azure_iot_hub_client_resource.resource_mqtt),
-                                             packet_id, wait_option);
+                                             packet_id);
     if (status)
     {
         LogError(LogLiteralArgs("Failed to get packet id"));
@@ -1893,7 +1928,7 @@ UINT topic_length;
     if ((hub_client_ptr == NX_NULL) ||
         (packet_pptr == NX_NULL))
     {
-        LogError(LogLiteralArgs("IoT PnP reported property create fail: INVALID POINTER"));
+        LogError(LogLiteralArgs("IoTHub reported properties create fail: INVALID POINTER"));
         return(NX_AZURE_IOT_INVALID_PARAMETER);
     }
 
@@ -1902,14 +1937,14 @@ UINT topic_length;
                                              &packet_ptr, wait_option);
     if (status)
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send fail: BUFFER ALLOCATE FAIL"));
+        LogError(LogLiteralArgs("IoTHub client reported properties create fail: BUFFER ALLOCATE FAIL"));
         return(status);
     }
 
     buffer_size = (UINT)(packet_ptr -> nx_packet_data_end - packet_ptr -> nx_packet_prepend_ptr);
     if (buffer_size <= NX_AZURE_IOT_HUB_CLIENT_U32_MAX_BUFFER_SIZE)
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send fail: BUFFER INSUFFICENT"));
+        LogError(LogLiteralArgs("IoTHub client reported properties create fail: BUFFER INSUFFICENT"));
         nx_packet_release(packet_ptr);
         return(NX_AZURE_IOT_INSUFFICIENT_BUFFER_SPACE);
     }
@@ -1925,7 +1960,7 @@ UINT topic_length;
 
     if (status)
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send failed to get request id"));
+        LogError(LogLiteralArgs("IoTHub client reported properties create fail: get request id failed"));
         nx_packet_release(packet_ptr);
         return(status);
     }
@@ -1936,7 +1971,7 @@ UINT topic_length;
                                                                           buffer_size, &topic_length);
     if (az_result_failed(core_result))
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send fail: NX_AZURE_IOT_PNP_CLIENT_TOPIC_SIZE is too small."));
+        LogError(LogLiteralArgs("IoTHub client reported properties create fail: NX_AZURE_IOT_PNP_CLIENT_TOPIC_SIZE is too small."));
         nx_packet_release(packet_ptr);
         return(NX_AZURE_IOT_INSUFFICIENT_BUFFER_SPACE);
     }
@@ -1981,21 +2016,21 @@ UINT status;
     if ((hub_client_ptr == NX_NULL) ||
         (packet_ptr == NX_NULL))
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send fail: INVALID POINTER"));
+        LogError(LogLiteralArgs("IoTHub client reported properties send fail: INVALID POINTER"));
         return(NX_AZURE_IOT_INVALID_PARAMETER);
     }
 
     /* Check if properties is subscribed */
     if ((status = nx_azure_iot_hub_client_properties_subscribe_status_check(hub_client_ptr, wait_option)))
     {
-        LogError(LogLiteralArgs("IoTPnP client reported state send fail with error %d"), status);
+        LogError(LogLiteralArgs("IoTHub client reported properties send fail with error %d"), status);
         return(status);
     }
 
     /* Check if the last request was throttled and if the next need to be throttled.  */
     if ((status = nx_azure_iot_hub_client_throttled_check(hub_client_ptr)))
     {
-        LogError(LogLiteralArgs("IoT PnP client reported state send fail with error %d"), status);
+        LogError(LogLiteralArgs("IoTHub client reported properties send fail with error %d"), status);
         return(status);
     }
 
@@ -2023,43 +2058,38 @@ UINT status;
                                                                  &response_packet_ptr, wait_option);
     if (status)
     {
-        LogError(LogLiteralArgs("IoTPnP client reported state send fail: append failed"));
+        LogError(LogLiteralArgs("IoTHub client reported properties send fail: append failed"));
         return(status);
     }
 
+    /* The packet of reported properties has been sent out successfully,
+       next the return value should be NX_AZURE_IOT_SUCCESS.  */
+
+    /* Continue to process response and the caller can check the response status to see if iothub accept the properties or not,
+       the reponse status is available only when the return status is NX_AZURE_IOT_SUCCESS.    */
     if (request_id_ptr)
     {
         *request_id_ptr = request_id;
     }
 
-    if (response_packet_ptr == NX_NULL)
+    if (response_status_ptr)
     {
-        if (hub_client_ptr -> nx_azure_iot_hub_client_state != NX_AZURE_IOT_HUB_CLIENT_STATUS_CONNECTED)
+        *response_status_ptr = 0;
+    }
+
+    if (response_packet_ptr)
+    {
+        if(nx_azure_iot_hub_client_process_publish_packet(response_packet_ptr -> nx_packet_prepend_ptr,
+                                                          &topic_offset, &length) == NX_AZURE_IOT_SUCCESS)
         {
-            return(NX_AZURE_IOT_DISCONNECTED);
+            nx_azure_iot_hub_client_device_twin_parse(hub_client_ptr,
+                                                      response_packet_ptr, topic_offset, length,
+                                                      NX_NULL, version_ptr, NX_NULL,
+                                                      response_status_ptr);
         }
 
-        return(NX_AZURE_IOT_NO_PACKET);
-    }
-
-    if ((status = nx_azure_iot_hub_client_process_publish_packet(response_packet_ptr -> nx_packet_prepend_ptr,
-                                                                 &topic_offset, &length)))
-    {
         nx_packet_release(response_packet_ptr);
-        return(status);
     }
-
-    if ((status = nx_azure_iot_hub_client_device_twin_parse(hub_client_ptr,
-                                                            response_packet_ptr, topic_offset, length,
-                                                            NX_NULL, version_ptr, NX_NULL,
-                                                            response_status_ptr)))
-    {
-        nx_packet_release(response_packet_ptr);
-        return(status);
-    }
-
-    /* Release message block.  */
-    nx_packet_release(response_packet_ptr);
 
     return(NX_AZURE_IOT_SUCCESS);
 }

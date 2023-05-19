@@ -1,4 +1,4 @@
-;******************************************************************************
+;********************************************************************************
 ;* File Name          : startup_stm32wl55xx_cm4.s
 ;* Author             : MCD Application Team
 ;* Description        : STM32WL55xx devices vector table for MDK-ARM toolchain.
@@ -10,18 +10,18 @@
 ;*                        calls main()).
 ;*                      After Reset the CortexM4 processor is in Thread mode,
 ;*                      priority is Privileged, and the Stack is set to Main.
-;* <<< Use Configuration Wizard in Context Menu >>>
-;******************************************************************************
+;* <<< Use Configuration Wizard in Context Menu >>>   
+;********************************************************************************
 ;* @attention
 ;*
-;* Copyright (c) 2020(2021) STMicroelectronics.
+;* Copyright (c) 2020-2021 STMicroelectronics.
 ;* All rights reserved.
 ;*
 ;* This software is licensed under terms that can be found in the LICENSE file
 ;* in the root directory of this software component.
 ;* If no LICENSE file comes with this software, it is provided AS-IS.
 ;*
-;******************************************************************************
+;********************************************************************************
 
 ; Amount of memory (in bytes) allocated for Stack
 ; Tailor this value to your application needs
@@ -301,7 +301,7 @@ I2C2_EV_IRQHandler
 I2C2_ER_IRQHandler
 SPI1_IRQHandler
 SPI2_IRQHandler
-USART1_IRQHandler
+USART1_IRQHandler                
 USART2_IRQHandler
 LPUART1_IRQHandler
 LPTIM1_IRQHandler
@@ -334,9 +334,9 @@ DMAMUX1_OVR_IRQHandler
 
                 ALIGN
 
-;*******************************************************************************
+;********************************************************************************
 ; User Stack and Heap initialization
-;*******************************************************************************
+;********************************************************************************
                  IF      :DEF:__MICROLIB
 
                  EXPORT  __initial_sp
@@ -361,5 +361,3 @@ __user_initial_stackheap
                  ENDIF
 
                  END
-
-;************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE*****
